@@ -17,6 +17,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: windows-release
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
@@ -65,3 +69,16 @@ jobs:
             dist/TrackRecord-Setup.exe.blockmap
             dist/latest.yml
           make_latest: true
+
+      - name: Supprimer les anciennes versions
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          keep="v1.1.${{ github.run_number }}"
+          gh release list -R "$GITHUB_REPOSITORY" --limit 200 --json tagName -q '.[].tagName' | while read t; do
+            [ "$t" = "$keep" ] || gh release delete "$t" -R "$GITHUB_REPOSITORY" --yes --cleanup-tag
+          done
+          gh api "repos/$GITHUB_REPOSITORY/tags" --paginate -q '.[].name' | while read t; do
+            [ "$t" = "$keep" ] || gh api -X DELETE "repos/$GITHUB_REPOSITORY/git/refs/tags/$t" || true
+          done
