@@ -1,0 +1,54 @@
+{
+  "name": "trackrecord",
+  "productName": "TrackRecord",
+  "version": "1.1.0",
+  "description": "Track record de trading et suivi de patrimoine",
+  "author": "Teero",
+  "main": "electron/main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^31.7.7",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.teeroo.trackrecord",
+    "productName": "TrackRecord",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "app/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "icons/icon-512.png",
+      "artifactName": "TrackRecord-Setup.${ext}",
+      "legalTrademarks": "TrackRecord"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "TrackRecord",
+      "runAfterFinish": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "Teeroo",
+        "repo": "Trackrecord"
+      }
+    ],
+    "copyright": "© 2026 Teero. Tous droits réservés."
+  },
+  "dependencies": {
+    "electron-updater": "^6.3.9"
+  },
+  "license": "SEE LICENSE IN LICENSE"
+}

@@ -1,0 +1,67 @@
+name: Application Windows (.exe)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'styles.css'
+      - 'app.js'
+      - 'config.js'
+      - 'icons/**'
+      - 'electron/**'
+      - 'package.json'
+      - '.github/workflows/windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Préparer les fichiers de l'application
+        shell: bash
+        run: |
+          mkdir -p app/vendor
+          cp -r index.html styles.css app.js config.js manifest.webmanifest icons app/
+          npm install --no-save --no-package-lock chart.js@4.4.1 @supabase/supabase-js@2
+          cp node_modules/chart.js/dist/chart.umd.js app/vendor/chart.umd.js
+          cp node_modules/@supabase/supabase-js/dist/umd/supabase.js app/vendor/supabase.js
+          sed -i 's#https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js#vendor/chart.umd.js#' app/index.html
+          sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js#vendor/supabase.js#' app/index.html
+          grep -n "vendor/" app/index.html
+
+      - name: Numéro de version
+        shell: bash
+        run: npm version 1.1.${{ github.run_number }} --no-git-tag-version --allow-same-version
+
+      - name: Installer Electron
+        run: npm install --no-package-lock
+
+      - name: Construire l'installateur
+        run: npx electron-builder --win nsis --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Publier la version
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.${{ github.run_number }}
+          name: TrackRecord 1.1.${{ github.run_number }}
+          body: |
+            Télécharger **TrackRecord-Setup.exe**, double-cliquer, et c'est installé.
+            Si le logiciel est déjà installé, il se met à jour tout seul : une pastille « Nouvelle mise à jour » apparaît en bas à gauche.
+            Au premier lancement, Windows peut afficher « Windows a protégé votre ordinateur » : cliquer sur « Informations complémentaires » puis « Exécuter quand même ».
+          files: |
+            dist/TrackRecord-Setup.exe
+            dist/TrackRecord-Setup.exe.blockmap
+            dist/latest.yml
+          make_latest: true
