@@ -31,24 +31,40 @@ jobs:
         with:
           node-version: 20
 
+      # node_modules (Electron, electron-builder, chart.js, supabase-js) et les binaires
+      # téléchargés par electron-builder sont gardés en cache : plus de gros téléchargements à chaque version.
+      - name: Dépendances (cache)
+        id: deps
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: win-deps-${{ hashFiles('package.json') }}-chart4.4.1-v1
+
+      - name: Binaires Electron (cache)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/electron/Cache
+            ~/AppData/Local/electron-builder/Cache
+          key: win-electron-bin-${{ hashFiles('package.json') }}-v1
+          restore-keys: win-electron-bin-
+
+      - name: Installer les dépendances
+        if: steps.deps.outputs.cache-hit != 'true'
+        shell: bash
+        run: npm install --no-save --no-package-lock --no-audit --no-fund chart.js@4.4.1 @supabase/supabase-js@2
+
       - name: Préparer les fichiers de l'application
         shell: bash
         run: |
           mkdir -p app/vendor
           cp -r index.html styles.css app.js config.js manifest.webmanifest icons app/
-          npm install --no-save --no-package-lock chart.js@4.4.1 @supabase/supabase-js@2
           cp node_modules/chart.js/dist/chart.umd.js app/vendor/chart.umd.js
           cp node_modules/@supabase/supabase-js/dist/umd/supabase.js app/vendor/supabase.js
           sed -i 's#https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js#vendor/chart.umd.js#' app/index.html
           sed -i 's#https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js#vendor/supabase.js#' app/index.html
           grep -n "vendor/" app/index.html
-
-      - name: Numéro de version
-        shell: bash
-        run: npm version 1.1.${{ github.run_number }} --no-git-tag-version --allow-same-version
-
-      - name: Installer Electron
-        run: npm install --no-package-lock
+          npm version 1.1.${{ github.run_number }} --no-git-tag-version --allow-same-version
 
       - name: Construire l'installateur
         run: npx electron-builder --win nsis --publish never
